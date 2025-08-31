@@ -1,5 +1,12 @@
 #! /usr/bin/env python3
 
+"""
+Build script for the Slack notification system for unattended upgrades
+
+Author: @tom4897
+Date: September 2025
+"""
+
 import os
 import re
 import shutil

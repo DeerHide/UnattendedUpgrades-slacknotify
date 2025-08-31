@@ -1,12 +1,19 @@
 #!/bin/python3
 
+"""
+Slack notification system for unattended upgrades
+
+Author: @nakool, @miragecentury, @tom4897
+Date: June 2025
+"""
+
 from dataclasses import dataclass
 from enum import Enum
 import sys
 import tempfile
 import os
 import re
-import requests
+import requests # noqa: F401
 import json # noqa: F401 
 import logging
 from datetime import datetime

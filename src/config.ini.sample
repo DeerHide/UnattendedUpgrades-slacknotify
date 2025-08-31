@@ -1,3 +1,4 @@
+# generated file
 # Configuration file for Unattended Upgrades Slack Notifier
 # Copy this file to config.ini and fill in your actual values
 # NEVER commit config.ini to version control!
