@@ -14,8 +14,21 @@ from datetime import datetime
 base_log_dir = "./logs/notifyslack"
 # >>> BUILD.CONFIG.LOGDIR
 
+# <<< BUILD.CONFIG.SLACK
+# this block will be replaced by the BUILD.CONFIG.REPLACE during the build process
+import config
+SLACK_TOKEN = config.SLACK_TOKEN  # Bot User OAuth Token
+SLACK_CHANNEL = config.SLACK_CHANNEL  # Channel ID or name
+HOSTNAME = config.HOSTNAME  # Hostname of the machine
+USERNAME = config.USERNAME  # Username running the update
+BOT_USERNAME = config.BOT_USERNAME  # Bot username for Slack
+# >>> BUILD.CONFIG.SLACK
+
+# Slack message limits
+SLACK_MAX_CHARS = 12000  # Slack's actual character limit per message
+
 # Create log directory structure
-def setup_logging():
+def setup_logging() -> logging.Logger:
     """Setup logging with daily files organized by month"""
     now = datetime.now()
     month_name = now.strftime("%B").lower()  # Full month name in lowercase (e.g., "august")
@@ -45,20 +58,7 @@ def setup_logging():
 # Initialize logger
 logger = setup_logging()
 
-# <<< BUILD.CONFIG.SLACK
-# this block will be replaced by the BUILD.CONFIG.REPLACE during the build process
-import config
-SLACK_TOKEN = config.SLACK_TOKEN  # Bot User OAuth Token
-SLACK_CHANNEL = config.SLACK_CHANNEL  # Channel ID or name
-HOSTNAME = config.HOSTNAME  # Hostname of the machine
-USERNAME = config.USERNAME  # Username running the update
-BOT_USERNAME = config.BOT_USERNAME  # Bot username for Slack
-# >>> BUILD.CONFIG.SLACK
-
-# Slack message limits
-SLACK_MAX_CHARS = 12000  # Slack's actual character limit per message
-
-def split_long_message(content, max_chars=SLACK_MAX_CHARS):
+def split_long_message(content: str, max_chars: int = SLACK_MAX_CHARS) -> list[str]:
     """Split long content into chunks that fit Slack's limits"""
     if len(content) <= max_chars:
         return [content]
@@ -79,7 +79,7 @@ def split_long_message(content, max_chars=SLACK_MAX_CHARS):
 
     return chunks
 
-def send_to_slack_blocks(blocks, username=None, thread_ts=None):
+def send_to_slack_blocks(blocks: list[dict], username: str | None = None, thread_ts: str | None = None) -> str | None:
     """Send message with rich formatting using Slack blocks"""
     logger.info(f"Sending Slack message with {len(blocks)} blocks")
 
@@ -115,7 +115,7 @@ def send_to_slack_blocks(blocks, username=None, thread_ts=None):
         logger.error(f"Request error: {e}")
         return None
 
-def send_simple_message(text, username=None, thread_ts=None):
+def send_simple_message(text: str, username: str | None = None, thread_ts: str | None = None) -> str | None:
     """Send simple text message"""
     logger.info(f"Sending simple Slack message: {text[:100]}...")
 
@@ -136,7 +136,7 @@ def send_simple_message(text, username=None, thread_ts=None):
     else:
         return send_simple_message_chunk(text, username, thread_ts)
 
-def send_simple_message_chunk(text, username=None, thread_ts=None):
+def send_simple_message_chunk(text: str, username: str | None = None, thread_ts: str | None = None) -> str | None:
     """Send a single chunk of a simple text message"""
     url = "https://slack.com/api/chat.postMessage"
     headers = {
@@ -170,14 +170,14 @@ def send_simple_message_chunk(text, username=None, thread_ts=None):
         logger.error(f"Request error: {e}")
         return None
 
-def read_input():
+def read_input() -> tuple[str, str | None]:
     if len(sys.argv) < 2:
         with tempfile.NamedTemporaryFile(delete=False, mode='w+') as tmp:
             tmp.write(sys.stdin.read())
             return tmp.name, tmp.name
     return sys.argv[1], None
 
-def extract_lines(filepath):
+def extract_lines(filepath: str) -> list[str] | None:
     try:
         with open(filepath, 'r') as f:
             lines = f.readlines()
@@ -189,7 +189,7 @@ def extract_lines(filepath):
         send_simple_message(msg, BOT_USERNAME)
         return None
 
-def find_last_subject(lines):
+def find_last_subject(lines: list[str]) -> str | None:
     for i in reversed(range(len(lines))):
         if lines[i].startswith("Subject:"):
             subject = lines[i].strip().split("Subject:", 1)[1].strip()
@@ -198,7 +198,7 @@ def find_last_subject(lines):
     logger.warning("No Subject line found in the file")
     return None
 
-def find_content_indices(lines):
+def find_content_indices(lines: list[str]) -> tuple[int | None, int | None]:
     start = end = None
 
     # Look for different possible patterns
@@ -236,7 +236,7 @@ def find_content_indices(lines):
 
     return start, end
 
-def find_log_indices(lines):
+def find_log_indices(lines: list[str]) -> tuple[int | None, int | None]:
     start = end = None
     for i in range(len(lines)):
         if re.match(r"^Package installation log:", lines[i]):
@@ -254,7 +254,7 @@ def find_log_indices(lines):
 
     return start, end
 
-def create_main_message_blocks(subject, content):
+def create_main_message_blocks(subject: str, content: str) -> list[dict]:
     """Create rich formatted blocks for main message"""
     # Determine status and emoji based on subject and content
     status_emoji = "ℹ️"
@@ -303,7 +303,7 @@ def create_main_message_blocks(subject, content):
     ]
     return blocks
 
-def main():
+def main() -> None:
     logger.info("Starting notification script")
 
     input_file, tmp_file = read_input()
