@@ -460,7 +460,6 @@ class SlackClient:
         _logger.debug(f"Sending request to Slack API")
         _logger.debug(f"{payload}")
 
-        return None
         try:
             response = requests.post(self.base_url, headers=self.headers, json=payload)
             response.raise_for_status()
