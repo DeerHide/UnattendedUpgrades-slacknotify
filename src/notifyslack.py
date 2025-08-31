@@ -148,11 +148,11 @@ class ContentParser:
 
 class UpdateStatus(Enum):
     """Enumeration of possible update statuses"""
-    NO_UPDATES = "no_updates"
-    SUCCESS = "success"
-    FAILED = "failed"
-    WARNING = "warning"
-    INFO = "info"
+    NO_UPDATES  = 1
+    SUCCESS     = 2
+    FAILED      = 3
+    WARNING     = 4
+    INFO        = 5
 
 @dataclass(frozen=True, slots=True)
 class UpdateResult:
@@ -164,7 +164,8 @@ class UpdateResult:
     mention_ids: str = None
 
     def matches(self, text: str) -> bool:
-        return any(pattern in text.lower() for pattern in self.patterns)
+        text_casefold = text.casefold()
+        return any(pattern.casefold() in text_casefold for pattern in self.patterns)
 
 class StatusDeterminer:
     """Determines the status of unattended upgrades based on email content"""
@@ -209,20 +210,34 @@ class StatusDeterminer:
 
     @classmethod
     def get_status(cls, subject: str, content: str) -> UpdateResult:
-        """Determine the status based on email subject and content"""
-        subject_lower = subject.lower()
-        content_lower = content.lower()
-
-        for status, info in cls.STATUS_MAPPINGS.items():
-            if info.matches(subject_lower) or info.matches(content_lower):
-                return info
+        """Determine the status based on email subject and content with priority"""
+        subject_casefold = subject.casefold()
+        content_casefold = content.casefold()
+        
+        for status in [UpdateStatus.FAILED, UpdateStatus.WARNING]:
+            if cls.STATUS_MAPPINGS[status].matches(subject_casefold) or cls.STATUS_MAPPINGS[status].matches(content_casefold):
+                return cls.STATUS_MAPPINGS[status]
+        
+        for status in [UpdateStatus.SUCCESS, UpdateStatus.NO_UPDATES, UpdateStatus.INFO]:
+            if cls.STATUS_MAPPINGS[status].matches(subject_casefold) or cls.STATUS_MAPPINGS[status].matches(content_casefold):
+                return cls.STATUS_MAPPINGS[status]
+        
         return cls.STATUS_MAPPINGS[UpdateStatus.INFO]
 
     @classmethod
     def is_reboot_required(cls, subject: str, content: str) -> bool:
-        subject_lower = subject.lower()
-        content_lower = content.lower()
-        return "reboot required" in subject_lower or "reboot-required" in content_lower
+        subject_casefold = subject.casefold()
+        content_casefold = content.casefold()
+        
+        reboot_patterns = [
+            "reboot required",
+            "reboot-required", 
+            "reboot_required",
+            "reboot is required"
+        ]
+        
+        return any(pattern in subject_casefold or pattern in content_casefold 
+                   for pattern in reboot_patterns)
 
 class SlackMessageFormatter:
     """Creates and formats Slack message blocks"""
@@ -238,6 +253,14 @@ class SlackMessageFormatter:
         status_text = status_info.text
         reboot_required = StatusDeterminer.is_reboot_required(subject, content)
         reboot_emoji = ":arrows_counterclockwise:" if reboot_required else ""
+
+        if status_info.mention_ids:
+            mentions = []
+            for mention_id in status_info.mention_ids:
+                mentions.append(f"<@{mention_id}>")
+            mention_text = ", ".join(mentions)
+        else:
+            mention_text = ""
 
         blocks = [
             {
@@ -262,6 +285,15 @@ class SlackMessageFormatter:
                 ]
             }
         ]
+
+        if mention_text:
+            blocks.append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Notify:* {mention_text}"
+                }
+            })
         return blocks
     
     def create_update_details_blocks(self, content: str) -> List[Dict[str, Any]]:
@@ -335,6 +367,7 @@ class SlackClient:
     def send_simple_message(self, text: str, username: Optional[str] = None, 
                            thread_ts: Optional[str] = None) -> Optional[str]:
         """Send simple text message with automatic splitting for long content"""
+
         _logger.info(f"Sending simple Slack message: {text[:100]}...")
 
         # Split long messages if needed
@@ -393,6 +426,7 @@ class SlackClient:
     
     def _send_request(self, payload: Dict[str, Any]) -> Optional[str]:
         """Send request to Slack API and handle response"""
+        
         try:
             response = requests.post(self.base_url, headers=self.headers, json=payload)
             response.raise_for_status()
