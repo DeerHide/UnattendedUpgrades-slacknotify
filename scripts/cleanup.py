@@ -115,9 +115,20 @@ def main() -> int:
     for file_path in iter_files_by_suffixes(root, (".pyc", ".pyo")):
         remove_path(file_path, dry_run=dry_run, vverbose=vverbose, verbose=verbose)
 
+    # Clean up Python coverage files
+    for file_path in iter_files_by_suffixes(root, (".coverage", "coverage.xml")):
+        remove_path(file_path, dry_run=dry_run, vverbose=vverbose, verbose=verbose)
+
+    for file_path in iter_dirs_by_name(root, ("htmlcov")):
+        remove_path(file_path, dry_run=dry_run, vverbose=vverbose, verbose=verbose)
+
+
     # Clean up log files
     for log_file in iter_files_by_suffixes(root, (".log",)):
         remove_path(log_file, dry_run=dry_run, vverbose=vverbose, verbose=verbose)
+
+    for cache_dir in iter_dirs_by_name(root, "logs"):
+        remove_path(cache_dir, dry_run=dry_run, vverbose=vverbose, verbose=verbose)
 
     # Clean up egg-info directories (build artifacts)
     for egg_info_dir in iter_dirs_by_pattern(root, "*.egg-info"):
