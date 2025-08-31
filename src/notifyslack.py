@@ -17,6 +17,10 @@ from typing import Optional, List, Tuple, Dict, Any
 BASE_LOG_DIR = "./logs/notifyslack"
 # >>> BUILD.CONFIG.LOGDIR
 
+# <<< BUILD.CONFIG.LOGLEVEL
+LOG_LEVEL = logging.DEBUG
+# >>> BUILD.CONFIG.LOGLEVEL
+
 # <<< BUILD.CONFIG.MENTIONIDS
 MENTION_IDS = {
     'FAILED':   ["U076T6095FG", "U076WRF4GRK"],
@@ -47,8 +51,8 @@ class LoggerManager:
         log_file = os.path.join(self.base_dir, f"{date_str}_notifyslack.log")
 
         logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s',
+            level=LOG_LEVEL,
+            format='%(asctime)s [%(levelname)s] %(funcName)s:%(lineno)d %(message)s',
             handlers=[
                 logging.FileHandler(log_file),
                 logging.StreamHandler()
@@ -453,6 +457,10 @@ class SlackClient:
     def _send_request(self, payload: Dict[str, Any]) -> Optional[str]:
         """Send request to Slack API and handle response"""
         
+        _logger.debug(f"Sending request to Slack API")
+        _logger.debug(f"{payload}")
+
+        return None
         try:
             response = requests.post(self.base_url, headers=self.headers, json=payload)
             response.raise_for_status()
