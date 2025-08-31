@@ -107,31 +107,43 @@ class ContentParser:
         """Find the start and end indices of the main content section"""
         start = end = None
 
-        # Look for different possible patterns
+        # Pre-compile regex patterns
+        start_patterns = [
+            re.compile(r"^Unattended upgrade"),
+            re.compile(r"^unattended upgrades"), 
+            re.compile(r"^No packages found"),
+            re.compile(r"^Starting unattended upgrades script")
+        ]
+        
+        end_patterns = [
+            re.compile(r"^Package installation log:"),
+            re.compile(r"^unattended-upgrades log:")
+        ]
+        
+        # Iterate over the list in reverse
+        start = end = None
         for i in reversed(range(len(lines))):
-            if re.match(r"^Unattended upgrade", lines[i]) or re.match(r"^unattended upgrades", lines[i]):
-                start = i
-                break
-            elif re.match(r"^No packages found", lines[i]):
-                start = i
-                break
-            elif re.match(r"^Starting unattended upgrades script", lines[i]):
-                start = i
+            line = lines[i]
+            
+            if start is None:
+                for pattern in start_patterns:
+                    if pattern.match(line):
+                        start = i
+                        break
+            
+            if end is None:
+                for pattern in end_patterns:
+                    if pattern.match(line):
+                        end = i - 1
+                        break
+            
+            if start is not None and end is not None:
                 break
 
-        # Look for end patterns
-        for i in reversed(range(len(lines))):
-            if re.match(r"^Package installation log:", lines[i]):
-                end = i - 1
-                break
-            elif re.match(r"^unattended-upgrades log:", lines[i]):
-                end = i - 1
-                break
-
-        # If no end pattern found, use the last non-empty line
+        # If no end pattern found, go with the last non-empty line
         if start is not None and end is None:
             for i in reversed(range(len(lines))):
-                if lines[i].strip():  # Find last non-empty line
+                if lines[i].strip():  # Find the last non-empty line
                     end = i
                     break
 
