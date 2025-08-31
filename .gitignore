@@ -6,11 +6,12 @@ config.ini
 
 # Python
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
+build/pyc
 develop-eggs/
 dist/
 downloads/
@@ -52,3 +53,6 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+coverage.xml
+.coverage
+htmlcov/
