@@ -488,6 +488,15 @@ class SlackClient:
         except requests.RequestException as e:
             _logger.error(f"Request error: {e}")
             return None
+        except requests.HTTPError as e:
+            _logger.error(f"HTTP error: {e}")
+            return None
+        except requests.Timeout as e:
+            _logger.error(f"Timeout error: {e}")
+            return None
+        except Exception as e:
+            _logger.error(f"Exception: {e}")
+            return None
 
 
 class UpdateNotifier:
