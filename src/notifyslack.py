@@ -149,10 +149,11 @@ class ContentParser:
 class UpdateStatus(Enum):
     """Enumeration of possible update statuses"""
     NO_UPDATES  = 1
-    SUCCESS     = 2
-    FAILED      = 3
-    WARNING     = 4
-    INFO        = 5
+    NO_UPDATES_REBOOT_PENDING = 2
+    SUCCESS     = 3
+    FAILED      = 4
+    WARNING     = 5
+    INFO        = 6
 
 @dataclass(frozen=True, slots=True)
 class UpdateResult:
@@ -166,8 +167,13 @@ class UpdateResult:
     def matches(self, text: str) -> bool:
         text_casefold = text.casefold()
         return any(pattern.casefold() in text_casefold for pattern in self.patterns)
+    
+    def matches_all(self, text: str) -> bool:
+        """Check if ALL patterns match (for more specific statuses)"""
+        text_casefold = text.casefold()
+        return all(pattern.casefold() in text_casefold for pattern in self.patterns)
 
-class StatusDeterminer:
+class ResultDeterminer:
     """Determines the status of unattended upgrades based on email content"""
 
     STATUS_MAPPINGS = {
@@ -177,6 +183,12 @@ class StatusDeterminer:
             text="No Updates Available",
             patterns=["no packages found", "no packages found that can be upgraded"],
             mention_ids=None
+        ),
+        UpdateStatus.NO_UPDATES_REBOOT_PENDING: UpdateResult(
+            status=UpdateStatus.NO_UPDATES_REBOOT_PENDING,
+            emoji=":warning:",  # Override emoji
+            text="No Updates - Reboot Pending",  # Override text
+            patterns=["no packages found that can be upgraded", "reboot required"]  # More specific patterns
         ),
         UpdateStatus.SUCCESS: UpdateResult(
             status=UpdateStatus.SUCCESS,
@@ -214,11 +226,13 @@ class StatusDeterminer:
         subject_casefold = subject.casefold()
         content_casefold = content.casefold()
         
-        for status in [UpdateStatus.FAILED, UpdateStatus.WARNING]:
-            if cls.STATUS_MAPPINGS[status].matches(subject_casefold) or cls.STATUS_MAPPINGS[status].matches(content_casefold):
-                return cls.STATUS_MAPPINGS[status]
+        # Check the more specific NO_UPDATES_REBOOT_PENDING case first (requires both patterns)
+        combined_text = f"{subject_casefold} {content_casefold}"
+        if cls.STATUS_MAPPINGS[UpdateStatus.NO_UPDATES_REBOOT_PENDING].matches_all(combined_text):
+            return cls.STATUS_MAPPINGS[UpdateStatus.NO_UPDATES_REBOOT_PENDING]
         
-        for status in [UpdateStatus.SUCCESS, UpdateStatus.NO_UPDATES, UpdateStatus.INFO]:
+        # Check other statuses in priority order
+        for status in [UpdateStatus.FAILED, UpdateStatus.WARNING, UpdateStatus.SUCCESS, UpdateStatus.NO_UPDATES, UpdateStatus.INFO]:
             if cls.STATUS_MAPPINGS[status].matches(subject_casefold) or cls.STATUS_MAPPINGS[status].matches(content_casefold):
                 return cls.STATUS_MAPPINGS[status]
         
@@ -248,10 +262,10 @@ class SlackMessageFormatter:
     def create_main_message_blocks(self, subject: str, content: str) -> List[Dict[str, Any]]:
         """Create rich formatted blocks for main message"""
 
-        status_info = StatusDeterminer.get_status(subject, content)
+        status_info = ResultDeterminer.get_status(subject, content)
         status_emoji = status_info.emoji
         status_text = status_info.text
-        reboot_required = StatusDeterminer.is_reboot_required(subject, content)
+        reboot_required = ResultDeterminer.is_reboot_required(subject, content)
         reboot_emoji = ":arrows_counterclockwise:" if reboot_required else ""
 
         if status_info.mention_ids:
