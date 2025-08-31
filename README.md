@@ -1,24 +1,31 @@
 # Unattended Upgrades Slack Notifier
 
-Processes unattended upgrade emails and sends notifications to Slack.
+Processes unattended upgrade emails and sends notifications to Slack with configurable alerting rules.
+
+## What it does
+
+- Parses unattended upgrade emails for update status and package details
+- Sends structured Slack notifications using Block Kit
+- Supports different mention rules for various update states (FAILED, WARNING, SUCCESS, etc.)
+- Handles both file input and stdin for mail system integration
+- Logs everything with daily rotation
 
 ## Installation
 
-1. Clone the repository:
-
-1. Run the setup script:
+1. Clone the repository
+2. Run the setup script:
 ```bash
 ./scripts/setup.sh
 ```
 
 ## Configuration
 
-Copy the sample configuration file:
+Copy the sample config and edit it:
 ```bash
 cp src/config.ini.sample config.ini
 ```
 
-Edit `config.ini` with your Slack credentials:
+Required settings in `config.ini`:
 ```ini
 [slack]
 token = xoxb-your-actual-slack-token
@@ -30,6 +37,8 @@ hostname = your-server-hostname
 username = root
 ```
 
+Environment variables work too: `SLACK_TOKEN`, `SLACK_CHANNEL`, `HOSTNAME`, `USERNAME`, `BOT_USERNAME`
+
 ## Usage
 
 Process an email file:
@@ -40,6 +49,13 @@ python src/notifyslack.py /path/to/email.txt
 Process from stdin:
 ```bash
 cat email.txt | python src/notifyslack.py
+```
+
+## Build
+
+The build script processes Jinja2 templates and generates environment-specific versions:
+```bash
+python build.py
 ```
 
 ## Dependencies
@@ -54,6 +70,9 @@ src/
 ├── notifyslack.py    # Main script
 ├── config.py         # Configuration management
 └── config.ini.sample # Configuration template
+build/
+├── blocks/           # Jinja2 template blocks
+└── build.py          # Build script
 scripts/
 └── setup.sh          # Setup script
 tests/
