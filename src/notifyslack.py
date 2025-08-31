@@ -21,18 +21,26 @@ BASE_LOG_DIR = "./logs/notifyslack"
 LOG_LEVEL = logging.DEBUG
 # >>> BUILD.CONFIG.LOGLEVEL
 
-# <<< BUILD.CONFIG.MENTIONIDS
 # user id is prefixed with @, e.g. @U076T6095FG
 # group id is prefixed with !subteam^, e.g. !subteam^SAZ94GDB8
 MENTION_IDS = {
-    'FAILED':   ["@U076T6095FG", "@U076WRF4GRK"],
-    'WARNING':  ["@U076T6095FG"],
+    'FAILED':   [],
+    'WARNING':  [],
     'NO_UPDATES_REBOOT_PENDING': [],
     'SUCCESS': [],
     'INFO': [],
     'NO_UPDATES': [],
 }
-# >>> BUILD.CONFIG.MENTIONIDS
+
+# <<< BUILD.CONFIG.SLACK
+# this block will be replaced by the BUILD.CONFIG.REPLACE during the build process
+import config
+SLACK_TOKEN = config.SLACK_TOKEN  # Bot User OAuth Token
+SLACK_CHANNEL = config.SLACK_CHANNEL  # Channel ID or name
+HOSTNAME = config.HOSTNAME  # Hostname of the machine
+USERNAME = config.USERNAME  # Username running the update
+BOT_USERNAME = config.BOT_USERNAME  # Bot username for Slack
+# >>> BUILD.CONFIG.SLACK
 
 # Slack message limits
 SLACK_MAX_CHARS = 12000  # Slack's actual character limit per message
@@ -216,7 +224,7 @@ class ResultDeterminer:
         UpdateStatus.NO_UPDATES_REBOOT_PENDING: UpdateResult(
             status=UpdateStatus.NO_UPDATES_REBOOT_PENDING,
             emoji=":warning:",  # Override emoji
-            text="No Updates - Reboot Pending",  # Override text
+            text="No Updates/Reboot Pending",  # Override text
             patterns=["no packages found that can be upgraded", "reboot required"],  # More specific patterns
             mention_ids=MENTION_IDS['NO_UPDATES_REBOOT_PENDING'] # Override mentions
         ),
@@ -298,6 +306,10 @@ class SlackMessageFormatter:
         reboot_required = ResultDeterminer.is_reboot_required(subject, content)
         reboot_emoji = ":arrows_counterclockwise:" if reboot_required else ""
 
+        reboot_required_str = "Required"
+        if status_info.status == UpdateStatus.FAILED:
+            reboot_emoji = ":warning:"
+
         if status_info.mention_ids and len(status_info.mention_ids) > 0:
             mentions = []
             for mention_id in status_info.mention_ids:
@@ -324,12 +336,22 @@ class SlackMessageFormatter:
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Reboot:*\n{reboot_emoji} {'Required' if reboot_required else 'Not Required'}\n"
+                        "text": f"*Reboot:*\n{reboot_emoji} {reboot_required_str if reboot_required else 'Not Required'}\n"
                     }
                 ]
-            }
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "plain_text",
+                        "text": f"info: HOSTNAME: {config.HOSTNAME}, USERNAME: {config.USERNAME}, BOT_USERNAME: {config.BOT_USERNAME}"
+                    }
+                ]
+            },
         ]
-
+        _logger.debug(f"Blocks: {blocks}")
+        _logger.debug(f"Mention Text: {mention_text}")
         if mention_text:
             blocks.append({
                 "type": "section",
@@ -370,11 +392,18 @@ class SlackMessageFormatter:
                 }
             },
             {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"```{log_content}```"
-                }
+                "type": "rich_text",
+                "elements": [
+                    {
+                        "type": "rich_text_preformatted",
+                        "elements": [
+                            {
+                                "type": "text",
+                                "text": f"```{log_content}```"
+                            }
+                        ]
+                    }
+                ]
             }
         ]
 
@@ -542,17 +571,44 @@ class UpdateNotifier:
                 os.unlink(tmp_file)
                 _logger.info("Cleaned up temporary file")
 
-        _logger.info("Notification process completed")
+    def _send_error_message(self, message: str) -> None:
+        """Send error message to Slack with fake UpdateStatus.FAILED"""
+        _logger.error(f"Sending error message to Slack: {message}")
+        
+        # Create a fake UpdateResult with FAILED status
+        failed_result = UpdateResult(
+            status=UpdateStatus.FAILED,
+            emoji=":red_circle:",
+            text="Failed",
+            patterns=["error"],
+            mention_ids=MENTION_IDS['FAILED']
+        )
+        
+        # Use the message formatter to create properly formatted blocks
+        blocks = self.message_formatter.create_main_message_blocks(
+            subject=f"ERROR: {message}",
+            content=f"An error occurred during the update process: {message}"
+        )
+        
+        # Add error details at the end
+        error_block = {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*Reason:* {message}"
+            }
+        }
+        blocks.append(error_block)
+        
+        # Send the formatted message
+        self.slack_client.send_blocks(blocks, self.config['BOT_USERNAME'])
     
     def _extract_log_blocks_and_validate_content(self, input_file: str) -> Optional[List[str]]:
         """Extract lines from input file with validation"""
         lines = self.email_parser.extract_lines(input_file)
         if lines is None:
             _logger.error("Failed to extract lines from input file")
-            self.slack_client.send_simple_message(
-                f":large_red_square: *Error:* File {input_file} does not exist or is not readable",
-                self.config['BOT_USERNAME']
-            )
+            self._send_error_message(f"File {input_file} does not exist or is not readable")
             return None
         return lines
     
@@ -561,10 +617,7 @@ class UpdateNotifier:
         subject = self.email_parser.find_last_subject(lines)
         if not subject:
             _logger.error("No subject found, sending error message")
-            self.slack_client.send_simple_message(
-                f":large_red_square: *Error:* No Subject line found in input file",
-                self.config['BOT_USERNAME']
-            )
+            self._send_error_message(f"No Subject line found in input file")
             return None
         return subject
     
@@ -573,10 +626,7 @@ class UpdateNotifier:
         start, end = self.email_parser.find_content_indices(lines)
         if start is None or end is None:
             _logger.error("Could not determine content boundaries, sending error message")
-            self.slack_client.send_simple_message(
-                f":large_red_square: *Error:* No valid content section found in input file",
-                self.config['BOT_USERNAME']
-            )
+            self._send_error_message(f"No valid content section found in input file")
             return None
         
         content = ''.join(lines[start:end + 1])
@@ -632,9 +682,9 @@ class UpdateNotifier:
                 else:
                     _logger.warning("Failed to send Package Installation Log")
         else:
-            _logger.info("No package installation log found, sending info message")
+            _logger.info("No package installation logs found, sending info message")
             self.slack_client.send_simple_message(
-                "ℹ️ *Note:* No package installation log found in this update",
+                "*Note:* No package installation logs were found during this run",
                 self.config['BOT_USERNAME'],
                 thread_ts
             )
@@ -645,18 +695,8 @@ def main() -> None:
     # Initialize logging    
     _logger.info("Starting notification script")
 
-    # <<< BUILD.CONFIG.SLACK
-    # this block will be replaced by the BUILD.CONFIG.REPLACE during the build process
-    import config
-    SLACK_TOKEN = config.SLACK_TOKEN  # Bot User OAuth Token
-    SLACK_CHANNEL = config.SLACK_CHANNEL  # Channel ID or name
-    HOSTNAME = config.HOSTNAME  # Hostname of the machine
-    USERNAME = config.USERNAME  # Username running the update
-    BOT_USERNAME = config.BOT_USERNAME  # Bot username for Slack
-    # >>> BUILD.CONFIG.SLACK
-
     # Load configuration
-    config_dict = {
+    config_dict: Dict[str, str] = {
         'SLACK_TOKEN': SLACK_TOKEN,
         'SLACK_CHANNEL': SLACK_CHANNEL,
         'HOSTNAME': HOSTNAME,
@@ -670,4 +710,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        _logger.error(f"Error: {e}")
+        raise e
+    finally:
+        _logger.info("Notification script completed")
