@@ -63,3 +63,7 @@ tests/
 ## License
 
 MIT License - see LICENSE file for details.
+
+## Link
+https://app.slack.com/block-kit-builder
+https://docs.slack.dev/reference/block-kit/blocks/rich-text-block/
