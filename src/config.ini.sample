@@ -1,0 +1,17 @@
+# Configuration file for Unattended Upgrades Slack Notifier
+# Copy this file to config.ini and fill in your actual values
+# NEVER commit config.ini to version control!
+
+[slack]
+# Your Slack Bot User OAuth Token (starts with xoxb-)
+token = your_slack_token_here
+# Channel ID (e.g., C1234567890) or channel name (e.g., #general)
+channel = your_channel_here
+# Bot username that will appear in Slack
+bot_username = UpdateBot
+
+[system]
+# Hostname of the machine running updates
+hostname = your-server-hostname
+# Username running the update process
+username = root
