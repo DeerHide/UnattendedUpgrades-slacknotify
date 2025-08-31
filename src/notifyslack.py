@@ -12,17 +12,18 @@ import logging
 from datetime import datetime
 from typing import Optional, List, Tuple, Dict, Any
 
-# <<< BUILD.CONFIG.LOGDIR
-# this block will be replaced by the BUILD.CONFIG.REPLACE during the build process
+# BUILD::LOG_DIR::REPLACE
 BASE_LOG_DIR = "./logs/notifyslack"
-# >>> BUILD.CONFIG.LOGDIR
+# BUILD::LOG_DIR::END
 
-# <<< BUILD.CONFIG.LOGLEVEL
+# BUILD::LOG_LEVEL::REPLACE
 LOG_LEVEL = logging.DEBUG
-# >>> BUILD.CONFIG.LOGLEVEL
+# BUILD::LOG_LEVEL::END
 
 # user id is prefixed with @, e.g. @U076T6095FG
 # group id is prefixed with !subteam^, e.g. !subteam^SAZ94GDB8
+# you can also use !here or !channel to mention the entire channel
+# BUILD::MENTION_IDS::REPLACE
 MENTION_IDS = {
     'FAILED':   [],
     'WARNING':  [],
@@ -31,19 +32,24 @@ MENTION_IDS = {
     'INFO': [],
     'NO_UPDATES': [],
 }
+# BUILD::MENTION_IDS::END
 
-# <<< BUILD.CONFIG.SLACK
-# this block will be replaced by the BUILD.CONFIG.REPLACE during the build process
+# BUILD::SLACK_CONFIG::REPLACE
 import config
 SLACK_TOKEN = config.SLACK_TOKEN  # Bot User OAuth Token
 SLACK_CHANNEL = config.SLACK_CHANNEL  # Channel ID or name
 HOSTNAME = config.HOSTNAME  # Hostname of the machine
 USERNAME = config.USERNAME  # Username running the update
 BOT_USERNAME = config.BOT_USERNAME  # Bot username for Slack
-# >>> BUILD.CONFIG.SLACK
+# BUILD::SLACK_CONFIG::END
 
 # Slack message limits
 SLACK_MAX_CHARS = 12000  # Slack's actual character limit per message
+
+# BUILD::DEBUG_CODE::REMOVE
+# This debug code will be removed during build
+print("Debug: log level set to", LOG_LEVEL)
+# BUILD::DEBUG_CODE::END
 
 
 class LoggerManager:
