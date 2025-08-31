@@ -17,6 +17,17 @@ from typing import Optional, List, Tuple, Dict, Any
 BASE_LOG_DIR = "./logs/notifyslack"
 # >>> BUILD.CONFIG.LOGDIR
 
+# <<< BUILD.CONFIG.MENTIONIDS
+MENTION_IDS = {
+    'FAILED':   ["U076T6095FG", "U076WRF4GRK"],
+    'WARNING':  ["U076T6095FG"],
+    'NO_UPDATES_REBOOT_PENDING': [],
+    'SUCCESS': [],
+    'INFO': [],
+    'NO_UPDATES': [],
+}
+# >>> BUILD.CONFIG.MENTIONIDS
+
 # Slack message limits
 SLACK_MAX_CHARS = 12000  # Slack's actual character limit per message
 
@@ -182,41 +193,42 @@ class ResultDeterminer:
             emoji=":information_source:",
             text="No Updates Available",
             patterns=["no packages found", "no packages found that can be upgraded"],
-            mention_ids=None
+            mention_ids=MENTION_IDS['NO_UPDATES']
         ),
         UpdateStatus.NO_UPDATES_REBOOT_PENDING: UpdateResult(
             status=UpdateStatus.NO_UPDATES_REBOOT_PENDING,
             emoji=":warning:",  # Override emoji
             text="No Updates - Reboot Pending",  # Override text
-            patterns=["no packages found that can be upgraded", "reboot required"]  # More specific patterns
+            patterns=["no packages found that can be upgraded", "reboot required"],  # More specific patterns
+            mention_ids=MENTION_IDS['NO_UPDATES_REBOOT_PENDING'] # Override mentions
         ),
         UpdateStatus.SUCCESS: UpdateResult(
             status=UpdateStatus.SUCCESS,
             emoji=":white_check_mark:",
             text="Success",
             patterns=["success", "all upgrades installed"],
-            mention_ids=None
+            mention_ids=MENTION_IDS['SUCCESS']
         ),
         UpdateStatus.FAILED: UpdateResult(
             status=UpdateStatus.FAILED,
             emoji=":red_circle:",
             text="Failed",
             patterns=["failed", "error"],
-            mention_ids=["U076T6095FG", "U076WRF4GRK"]
+            mention_ids=MENTION_IDS['FAILED']
         ),
         UpdateStatus.WARNING: UpdateResult(
             status=UpdateStatus.WARNING,
             emoji=":warning:",
             text="Warning",
             patterns=["warning"],
-            mention_ids=["U076T6095FG"]
+            mention_ids=MENTION_IDS['WARNING']
         ),
         UpdateStatus.INFO: UpdateResult(
             status=UpdateStatus.INFO,
             emoji=":information_source:",
             text="Info",
             patterns=[],
-            mention_ids=None
+            mention_ids=MENTION_IDS['INFO']
         )
     }
 
@@ -268,7 +280,7 @@ class SlackMessageFormatter:
         reboot_required = ResultDeterminer.is_reboot_required(subject, content)
         reboot_emoji = ":arrows_counterclockwise:" if reboot_required else ""
 
-        if status_info.mention_ids:
+        if status_info.mention_ids and len(status_info.mention_ids) > 0:
             mentions = []
             for mention_id in status_info.mention_ids:
                 mentions.append(f"<@{mention_id}>")
