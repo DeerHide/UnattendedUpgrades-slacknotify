@@ -1,0 +1,5 @@
+SLACK_TOKEN = ""  # Bot User OAuth Token
+SLACK_CHANNEL = ""  # Channel ID or name
+HOSTNAME = ""  # Hostname of the machine
+USERNAME = ""  # Username running the update
+BOT_USERNAME = ""  # Bot username for Slack
