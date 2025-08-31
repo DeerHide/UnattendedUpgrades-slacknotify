@@ -32,7 +32,7 @@ pip install -e .
 
 if [ ! -f "config.ini" ]; then
     echo "📝 Creating configuration file..."
-    cp config.ini.example config.ini
+    cp ./src/config.ini.sample ./src/config.ini
     echo "⚠️  Please edit config.ini with your actual Slack credentials!"
     echo "   The file has been created with placeholder values."
 else
@@ -44,8 +44,7 @@ echo "🎉 Setup complete!"
 echo
 echo "Next steps:"
 echo "1. Edit config.ini with your Slack credentials"
-echo "2. Test configuration: python test_config.py"
-echo "3. Test the script with: python src/notifyslack.py /path/to/email.txt"
+echo "2. Test the script with: python src/notifyslack.py /path/to/email.txt"
 echo
 echo "To activate the virtual environment in the future:"
 echo "   source $VENV_DIR/bin/activate"
