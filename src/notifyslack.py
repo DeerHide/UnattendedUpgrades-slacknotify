@@ -22,9 +22,11 @@ LOG_LEVEL = logging.DEBUG
 # >>> BUILD.CONFIG.LOGLEVEL
 
 # <<< BUILD.CONFIG.MENTIONIDS
+# user id is prefixed with @, e.g. @U076T6095FG
+# group id is prefixed with !subteam^, e.g. !subteam^SAZ94GDB8
 MENTION_IDS = {
-    'FAILED':   ["U076T6095FG", "U076WRF4GRK"],
-    'WARNING':  ["U076T6095FG"],
+    'FAILED':   ["@U076T6095FG", "@U076WRF4GRK"],
+    'WARNING':  ["@U076T6095FG"],
     'NO_UPDATES_REBOOT_PENDING': [],
     'SUCCESS': [],
     'INFO': [],
@@ -299,7 +301,7 @@ class SlackMessageFormatter:
         if status_info.mention_ids and len(status_info.mention_ids) > 0:
             mentions = []
             for mention_id in status_info.mention_ids:
-                mentions.append(f"<@{mention_id}>")
+                mentions.append(f"<{mention_id}>")
             mention_text = ", ".join(mentions)
         else:
             mention_text = ""
