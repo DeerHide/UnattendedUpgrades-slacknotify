@@ -16,6 +16,7 @@ from typing import Optional
 from datetime import datetime
 
 
+
 def get_block_content(block_id: str) -> list[str]:
     block_content_py = ""
     with open(f"build/blocks/{block_id}.txt", "r") as file:
@@ -93,6 +94,8 @@ def main() -> None:
         block_id = block_id_re.search(block_line1).group(1)
         if "REMOVE" in block_line1:
             content = content.replace(block, "")
+            content_py = content_py.replace(block, "")
+            content_j2 = content_j2.replace(block, "")
             continue
         print(f"Block ID: {block_id}")
         content = content.replace(block, block_line1)
