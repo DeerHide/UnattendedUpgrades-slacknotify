@@ -112,8 +112,11 @@ class ContentParser:
                 lines = f.readlines()
                 _logger.info(f"Successfully read {len(lines)} lines from {filepath}")
                 return lines
-        except IOError as e:
-            _logger.error(f"IOError reading file {filepath}: {e}")
+        except (FileNotFoundError, PermissionError) as e:
+            _logger.error(f"File access error for {filepath}: {e}")
+            return None
+        except OSError as e:
+            _logger.error(f"OS error reading {filepath}: {e}")
             return None
     
     def find_last_subject(self, lines: List[str]) -> Optional[str]:
