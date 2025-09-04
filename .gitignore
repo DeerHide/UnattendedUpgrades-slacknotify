@@ -6,6 +6,7 @@ config.ini
 
 # Python
 __pycache__/
+.*_cache/
 .pytest_cache/
 *.py[cod]
 *$py.class
