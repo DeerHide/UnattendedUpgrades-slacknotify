@@ -1,48 +1,80 @@
+"""Configuration management."""
+
+import configparser
 import os
-from pathlib import Path
-from typing import Optional
+from typing import TypedDict
 
 
-def load_config_from_file(config_path: Optional[str] = None) -> dict:
+class SlackConfigsDict(TypedDict):
+    """Slack configuration dictionary."""
+    SLACK_TOKEN: str
+    SLACK_CHANNEL: str
+    BOT_USERNAME: str
+
+class SystemConfigsDict(TypedDict):
+    """System configuration dictionary."""
+    HOSTNAME: str
+    USERNAME: str
+
+class ConfigsDict(SystemConfigsDict, SlackConfigsDict):
+    """Combined configuration dictionary."""
+
+
+def load_config_from_file(config_path: str | None = None) -> ConfigsDict:
+    """Load configuration from file.
+
+    Args:
+        config_path: The path to the config file
+
+    Returns:
+        ConfigsDict: The configuration dictionary
+
+    Raises:
+        ValueError: If the config file does not exist
+        or does not contain both slack and system sections
+    """
     if config_path is None:
         config_path = "config.ini"
-    
-    config = {}
-    
-    if os.path.exists(config_path):
-        try:
-            import configparser
-            parser = configparser.ConfigParser()
-            parser.read(config_path)
-            
-            if 'slack' in parser:
-                config['SLACK_TOKEN'] = parser.get('slack', 'token', fallback='')
-                config['SLACK_CHANNEL'] = parser.get('slack', 'channel', fallback='')
-                config['BOT_USERNAME'] = parser.get('slack', 'bot_username', fallback='')
-            
-            if 'system' in parser:
-                config['HOSTNAME'] = parser.get('system', 'hostname', fallback='')
-                config['USERNAME'] = parser.get('system', 'username', fallback='')
-                
-        except Exception as e:
-            print(f"Warning: Could not parse config file {config_path}: {e}")
-    
-    return config
+
+    if not os.path.exists(config_path):
+        raise ValueError(f"Config file {config_path} does not exist")
+
+    try:
+
+        parser: configparser.ConfigParser = configparser.ConfigParser()
+        parser.read(config_path)
+
+        if ('slack', 'system') not in parser:
+            raise ValueError("Config file must contain both slack and system sections")
+
+        slack_config: SlackConfigsDict | None = None
+        system_config: SystemConfigsDict | None = None
+
+        if 'slack' in parser:
+            slack_config = SlackConfigsDict(
+                SLACK_TOKEN=parser.get('slack', 'token', fallback=''),
+                SLACK_CHANNEL=parser.get('slack', 'channel', fallback=''),
+                BOT_USERNAME=parser.get('slack', 'bot_username', fallback='')
+            )
+
+        if 'system' in parser:
+            system_config = SystemConfigsDict(
+                HOSTNAME=parser.get('system', 'hostname', fallback=''),
+                USERNAME=parser.get('system', 'username', fallback='')
+            )
+
+    except Exception as e: # pylint: disable=broad-exception-caught
+        print(f"Warning: Could not parse config file {config_path}: {e}")
+
+    return ConfigsDict(**slack_config, **system_config) # type: ignore
 
 
 def get_config_value(key: str, default: str = "") -> str:
-    env_key = key
-    value = os.environ.get(env_key)
-    
+    """Get configuration value from environment or file."""
+    value = os.environ.get(key)
+
     if value:
         return value
-    
-    config = load_config_from_file()
-    return config.get(key, default)
 
-# Load configuration values
-SLACK_TOKEN = get_config_value("SLACK_TOKEN")
-SLACK_CHANNEL = get_config_value("SLACK_CHANNEL")
-HOSTNAME = get_config_value("HOSTNAME")
-USERNAME = get_config_value("USERNAME")
-BOT_USERNAME = get_config_value("BOT_USERNAME")
+    config: SlackConfigsDict | SystemConfigsDict | ConfigsDict = load_config_from_file()
+    return str(config.get(key, default))
