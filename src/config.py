@@ -39,34 +39,24 @@ def load_config_from_file(config_path: str | None = None) -> ConfigsDict:
     if not os.path.exists(config_path):
         raise ValueError(f"Config file {config_path} does not exist")
 
-    try:
+    parser: configparser.ConfigParser = configparser.ConfigParser()
+    parser.read(config_path)
 
-        parser: configparser.ConfigParser = configparser.ConfigParser()
-        parser.read(config_path)
+    if not (parser.has_section('slack') and parser.has_section('system')):
+        raise ValueError("Config file must contain both slack and system sections")
 
-        if ('slack', 'system') not in parser:
-            raise ValueError("Config file must contain both slack and system sections")
+    slack_config: SlackConfigsDict = SlackConfigsDict(
+        SLACK_TOKEN=parser.get('slack', 'token', fallback=''),
+        SLACK_CHANNEL=parser.get('slack', 'channel', fallback=''),
+        BOT_USERNAME=parser.get('slack', 'bot_username', fallback='')
+    )
 
-        slack_config: SlackConfigsDict | None = None
-        system_config: SystemConfigsDict | None = None
+    system_config: SystemConfigsDict = SystemConfigsDict(
+        HOSTNAME=parser.get('system', 'hostname', fallback=''),
+        USERNAME=parser.get('system', 'username', fallback='')
+    )
 
-        if 'slack' in parser:
-            slack_config = SlackConfigsDict(
-                SLACK_TOKEN=parser.get('slack', 'token', fallback=''),
-                SLACK_CHANNEL=parser.get('slack', 'channel', fallback=''),
-                BOT_USERNAME=parser.get('slack', 'bot_username', fallback='')
-            )
-
-        if 'system' in parser:
-            system_config = SystemConfigsDict(
-                HOSTNAME=parser.get('system', 'hostname', fallback=''),
-                USERNAME=parser.get('system', 'username', fallback='')
-            )
-
-    except Exception as e: # pylint: disable=broad-exception-caught
-        print(f"Warning: Could not parse config file {config_path}: {e}")
-
-    return ConfigsDict(**slack_config, **system_config) # type: ignore
+    return ConfigsDict(**slack_config, **system_config)
 
 
 def get_config_value(key: str, default: str = "") -> str:
