@@ -12,6 +12,7 @@ requires-python = ">=3.10"
 dependencies = [
     "requests>=2.25.0"
 ]
+package-mode = false
 
 [project.optional-dependencies]
 test = [
@@ -98,3 +99,8 @@ docstring-code-line-length = 120
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.4.2"
+pytest-cov = "^6.3.0"
+

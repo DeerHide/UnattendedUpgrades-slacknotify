@@ -2,25 +2,30 @@
 
 import configparser
 import os
+from pathlib import Path
 from typing import TypedDict
 
 
 class SlackConfigsDict(TypedDict):
     """Slack configuration dictionary."""
+
     SLACK_TOKEN: str
     SLACK_CHANNEL: str
     BOT_USERNAME: str
 
+
 class SystemConfigsDict(TypedDict):
     """System configuration dictionary."""
+
     HOSTNAME: str
     USERNAME: str
+
 
 class ConfigsDict(SystemConfigsDict, SlackConfigsDict):
     """Combined configuration dictionary."""
 
 
-def load_config_from_file(config_path: str | None = None) -> ConfigsDict:
+def load_config_from_file(config_path: Path | str | None = None) -> ConfigsDict:
     """Load configuration from file.
 
     Args:
@@ -34,30 +39,32 @@ def load_config_from_file(config_path: str | None = None) -> ConfigsDict:
         or does not contain both slack and system sections
     """
     if config_path is None:
-        config_path = "config.ini"
+        config_path = Path("config.ini")
 
-    if not os.path.exists(config_path):
+    if isinstance(config_path, str):
+        config_path = Path(config_path)
+
+    if not config_path.exists():
         raise ValueError(f"Config file {config_path} does not exist")
 
     try:
         parser: configparser.ConfigParser = configparser.ConfigParser()
         parser.read(config_path)
-    except Exception as e: # pylint: disable=broad-exception-caught
-        raise ValueError(f"Could not parse config file {config_path}: {e}")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        raise ValueError(f"Could not parse config file {config_path}: {e}") from e
 
-
-    if not (parser.has_section('slack') and parser.has_section('system')):
+    if not (parser.has_section("slack") and parser.has_section("system")):
         raise ValueError("Config file must contain both slack and system sections")
 
     slack_config: SlackConfigsDict = SlackConfigsDict(
-        SLACK_TOKEN=parser.get('slack', 'token', fallback=''),
-        SLACK_CHANNEL=parser.get('slack', 'channel', fallback=''),
-        BOT_USERNAME=parser.get('slack', 'bot_username', fallback='')
+        SLACK_TOKEN=parser.get("slack", "token", fallback=""),
+        SLACK_CHANNEL=parser.get("slack", "channel", fallback=""),
+        BOT_USERNAME=parser.get("slack", "bot_username", fallback=""),
     )
 
     system_config: SystemConfigsDict = SystemConfigsDict(
-        HOSTNAME=parser.get('system', 'hostname', fallback=''),
-        USERNAME=parser.get('system', 'username', fallback='')
+        HOSTNAME=parser.get("system", "hostname", fallback=""),
+        USERNAME=parser.get("system", "username", fallback=""),
     )
 
     return ConfigsDict(**slack_config, **system_config)
