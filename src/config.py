@@ -39,8 +39,12 @@ def load_config_from_file(config_path: str | None = None) -> ConfigsDict:
     if not os.path.exists(config_path):
         raise ValueError(f"Config file {config_path} does not exist")
 
-    parser: configparser.ConfigParser = configparser.ConfigParser()
-    parser.read(config_path)
+    try:
+        parser: configparser.ConfigParser = configparser.ConfigParser()
+        parser.read(config_path)
+    except Exception as e: # pylint: disable=broad-exception-caught
+        raise ValueError(f"Could not parse config file {config_path}: {e}")
+
 
     if not (parser.has_section('slack') and parser.has_section('system')):
         raise ValueError("Config file must contain both slack and system sections")
