@@ -1,5 +1,7 @@
-SLACK_TOKEN = "{{ slack_token }}"  # Bot User OAuth Token
-SLACK_CHANNEL = "{{ slack_loginfo_channel }}"  # Channel ID or name
-HOSTNAME = "{{ ansible_hostname }}"  # Hostname of the machine
-USERNAME = "{{ ansible_user_id }}"  # Username running the update
-BOT_USERNAME = "{{ ansible_hostname | capitalize }}"  # Bot username for Slack
+    config_dict: ConfigsDict = ConfigsDict(
+        SLACK_TOKEN = "{{ slack_token }}"  # Bot User OAuth Token
+        SLACK_CHANNEL = "{{ slack_loginfo_channel }}"  # Channel ID or name
+        HOSTNAME = "{{ ansible_hostname }}"  # Hostname of the machine
+        USERNAME = "{{ ansible_user_id }}"  # Username running the update
+        BOT_USERNAME = "{{ ansible_hostname | capitalize }}"  # Bot username for Slack
+    )
