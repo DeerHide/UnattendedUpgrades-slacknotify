@@ -34,12 +34,12 @@ LOG_LEVEL = logging.DEBUG
 # you can also use !here or !channel to mention the entire channel
 # BUILD::MENTION_IDS::REPLACE
 MENTION_IDS: dict[str, list[str]] = {
-    'FAILED':   [],
-    'WARNING':  [],
-    'NO_UPDATES_REBOOT_PENDING': [],
-    'SUCCESS': [],
-    'INFO': [],
-    'NO_UPDATES': [],
+    "FAILED": [],
+    "WARNING": [],
+    "NO_UPDATES_REBOOT_PENDING": [],
+    "SUCCESS": [],
+    "INFO": [],
+    "NO_UPDATES": [],
 }
 # BUILD::MENTION_IDS::END
 
@@ -71,11 +71,8 @@ class LoggerManager:
 
         logging.basicConfig(
             level=LOG_LEVEL,
-            format='%(asctime)s [%(levelname)s] %(funcName)s:%(lineno)d %(message)s',
-            handlers=[
-                logging.FileHandler(log_file),
-                logging.StreamHandler()
-            ]
+            format="%(asctime)s [%(levelname)s] %(funcName)s:%(lineno)d %(message)s",
+            handlers=[logging.FileHandler(log_file), logging.StreamHandler()],
         )
         self.logger = logging.getLogger(__name__)
         return self.logger
@@ -86,7 +83,9 @@ class LoggerManager:
             return self.setup()
         return self.logger
 
+
 _logger = LoggerManager(BASE_LOG_DIR).get_logger()
+
 
 class ContentParser:
     """Handles parsing and validation of email input from unattended-upgrades."""
@@ -94,7 +93,7 @@ class ContentParser:
     def process_input(self) -> tuple[str, str | None]:
         """Process input from command (arg vs stdin)."""
         if len(sys.argv) < 2:
-            with tempfile.NamedTemporaryFile(delete=False, mode='w+') as tmp:
+            with tempfile.NamedTemporaryFile(delete=False, mode="w+") as tmp:
                 tmp.write(sys.stdin.read())
                 return tmp.name, tmp.name
         return sys.argv[1], None
@@ -102,7 +101,7 @@ class ContentParser:
     def extract_lines(self, filepath: str) -> list[str] | None:
         """Read and extract lines from the input file."""
         try:
-            with open(filepath, encoding='utf-8') as f:
+            with open(filepath, encoding="utf-8") as f:
                 lines = f.readlines()
                 _logger.info("Successfully read %d lines from %s", len(lines), filepath)
                 return lines
@@ -132,13 +131,10 @@ class ContentParser:
             re.compile(r"^Unattended upgrade"),
             re.compile(r"^unattended upgrades"),
             re.compile(r"^No packages found"),
-            re.compile(r"^Starting unattended upgrades script")
+            re.compile(r"^Starting unattended upgrades script"),
         ]
 
-        end_patterns = [
-            re.compile(r"^Package installation log:"),
-            re.compile(r"^unattended-upgrades log:")
-        ]
+        end_patterns = [re.compile(r"^Package installation log:"), re.compile(r"^unattended-upgrades log:")]
 
         # Iterate over the list in reverse
         start = end = None
@@ -193,18 +189,22 @@ class ContentParser:
 
         return start, end
 
+
 class UpdateStatus(Enum):
     """Enumeration of possible update statuses."""
-    NO_UPDATES  = 1
+
+    NO_UPDATES = 1
     NO_UPDATES_REBOOT_PENDING = 2
-    SUCCESS     = 3
-    FAILED      = 4
-    WARNING     = 5
-    INFO        = 6
+    SUCCESS = 3
+    FAILED = 4
+    WARNING = 5
+    INFO = 6
+
 
 @dataclass(frozen=True, slots=True)
 class UpdateResult:
     """Data class containing status information."""
+
     status: UpdateStatus
     emoji: str
     text: str
@@ -221,6 +221,7 @@ class UpdateResult:
         text_casefold = text.casefold()
         return all(pattern.casefold() in text_casefold for pattern in self.patterns)
 
+
 class ResultDeterminer:
     """Determines the status of unattended upgrades based on email content."""
 
@@ -230,43 +231,43 @@ class ResultDeterminer:
             emoji=":information_source:",
             text="No Updates Available",
             patterns=["no packages found", "no packages found that can be upgraded"],
-            mention_ids=MENTION_IDS['NO_UPDATES']
+            mention_ids=MENTION_IDS["NO_UPDATES"],
         ),
         UpdateStatus.NO_UPDATES_REBOOT_PENDING: UpdateResult(
             status=UpdateStatus.NO_UPDATES_REBOOT_PENDING,
             emoji=":warning:",  # Override emoji
             text="No Updates/Reboot Pending",  # Override text
             patterns=["no packages found that can be upgraded", "reboot required"],  # More specific patterns
-            mention_ids=MENTION_IDS['NO_UPDATES_REBOOT_PENDING'] # Override mentions
+            mention_ids=MENTION_IDS["NO_UPDATES_REBOOT_PENDING"],  # Override mentions
         ),
         UpdateStatus.SUCCESS: UpdateResult(
             status=UpdateStatus.SUCCESS,
             emoji=":white_check_mark:",
             text="Success",
             patterns=["success", "all upgrades installed"],
-            mention_ids=MENTION_IDS['SUCCESS']
+            mention_ids=MENTION_IDS["SUCCESS"],
         ),
         UpdateStatus.FAILED: UpdateResult(
             status=UpdateStatus.FAILED,
             emoji=":red_circle:",
             text="Failed",
             patterns=["failed", "error"],
-            mention_ids=MENTION_IDS['FAILED']
+            mention_ids=MENTION_IDS["FAILED"],
         ),
         UpdateStatus.WARNING: UpdateResult(
             status=UpdateStatus.WARNING,
             emoji=":warning:",
             text="Warning",
             patterns=["warning"],
-            mention_ids=MENTION_IDS['WARNING']
+            mention_ids=MENTION_IDS["WARNING"],
         ),
         UpdateStatus.INFO: UpdateResult(
             status=UpdateStatus.INFO,
             emoji=":information_source:",
             text="Info",
             patterns=[],
-            mention_ids=MENTION_IDS['INFO']
-        )
+            mention_ids=MENTION_IDS["INFO"],
+        ),
     }
 
     @classmethod
@@ -281,8 +282,16 @@ class ResultDeterminer:
             return cls.STATUS_MAPPINGS[UpdateStatus.NO_UPDATES_REBOOT_PENDING]
 
         # Check other statuses in priority order
-        for status in [UpdateStatus.FAILED, UpdateStatus.WARNING, UpdateStatus.SUCCESS, UpdateStatus.NO_UPDATES, UpdateStatus.INFO]:
-            if cls.STATUS_MAPPINGS[status].matches(subject_casefold) or cls.STATUS_MAPPINGS[status].matches(content_casefold):
+        for status in [
+            UpdateStatus.FAILED,
+            UpdateStatus.WARNING,
+            UpdateStatus.SUCCESS,
+            UpdateStatus.NO_UPDATES,
+            UpdateStatus.INFO,
+        ]:
+            if cls.STATUS_MAPPINGS[status].matches(subject_casefold) or cls.STATUS_MAPPINGS[status].matches(
+                content_casefold
+            ):
                 return cls.STATUS_MAPPINGS[status]
 
         return cls.STATUS_MAPPINGS[UpdateStatus.INFO]
@@ -293,22 +302,19 @@ class ResultDeterminer:
         subject_casefold = subject.casefold()
         content_casefold = content.casefold()
 
-        reboot_patterns = [
-            "reboot required",
-            "reboot-required",
-            "reboot_required",
-            "reboot is required"
-        ]
+        reboot_patterns = ["reboot required", "reboot-required", "reboot_required", "reboot is required"]
 
-        return any(pattern in subject_casefold or pattern in content_casefold
-                   for pattern in reboot_patterns)
+        return any(pattern in subject_casefold or pattern in content_casefold for pattern in reboot_patterns)
+
 
 class SlackMessageFormatter:
     """Creates and formats Slack message blocks."""
 
-    def __init__(self, max_chars: int = SLACK_MAX_CHARS, configs: ConfigsDict | None = None) -> None:
+    def __init__(self, username: str, hostname: str, bot_username: str, max_chars: int = SLACK_MAX_CHARS) -> None:
         """Initialize the Slack message formatter."""
-        self.configs = configs if configs else load_config_from_file()
+        self.username = username
+        self.hostname = hostname
+        self.bot_username = bot_username
         self.max_chars = max_chars
 
     def create_main_message_blocks(self, subject: str, content: str) -> list[dict[str, Any]]:
@@ -332,118 +338,72 @@ class SlackMessageFormatter:
             mention_text = ""
 
         blocks: list[dict[str, Any]] = [
-            {
-                "type": "header",
-                "text":
-                {
-                    "type": "plain_text",
-                    "text": "Package Update"
-                }
-            },
+            {"type": "header", "text": {"type": "plain_text", "text": "Package Update"}},
             {
                 "type": "section",
                 "fields": [
+                    {"type": "mrkdwn", "text": f"*Status:*\n{status_emoji} {status_text}"},
                     {
                         "type": "mrkdwn",
-                        "text": f"*Status:*\n{status_emoji} {status_text}"
+                        "text": f"*Reboot:*\n{reboot_emoji} {reboot_required_str if reboot_required else 'Not Required'}\n",
                     },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Reboot:*\n{reboot_emoji} {reboot_required_str if reboot_required else 'Not Required'}\n"
-                    }
-                ]
+                ],
             },
             {
                 "type": "context",
                 "elements": [
                     {
                         "type": "plain_text",
-                        "text": f"info: HOSTNAME: {self.configs['HOSTNAME']}, USERNAME: {self.configs['USERNAME']}, BOT_USERNAME: {self.configs['BOT_USERNAME']}"
+                        "text": f"info: HOSTNAME: {self.hostname}, USERNAME: {self.username}, BOT_USERNAME: {self.bot_username}",
                     }
-                ]
+                ],
             },
         ]
         _logger.debug("Blocks: %s", blocks)
         _logger.debug("Mention Text: %s", mention_text)
         if mention_text:
-            blocks.append({
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Notify:* {mention_text}"
-                }
-            })
+            blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": f"*Notify:* {mention_text}"}})
         return blocks
 
     def create_update_details_blocks(self, content: str) -> list[dict[str, Any]]:
         """Create blocks for update details section."""
         return [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": ":pencil: Update Details"
-                }
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"```{content}```"
-                }
-            }
+            {"type": "header", "text": {"type": "plain_text", "text": ":pencil: Update Details"}},
+            {"type": "section", "text": {"type": "mrkdwn", "text": f"```{content}```"}},
         ]
 
     def create_log_blocks(self, log_content: str) -> list[dict[str, Any]]:
         """Create blocks for package installation log section."""
         return [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": ":clipboard: Package Installation Log"
-                }
-            },
+            {"type": "header", "text": {"type": "plain_text", "text": ":clipboard: Package Installation Log"}},
             {
                 "type": "rich_text",
                 "elements": [
-                    {
-                        "type": "rich_text_preformatted",
-                        "elements": [
-                            {
-                                "type": "text",
-                                "text": f"```{log_content}```"
-                            }
-                        ]
-                    }
-                ]
-            }
+                    {"type": "rich_text_preformatted", "elements": [{"type": "text", "text": f"```{log_content}```"}]}
+                ],
+            },
         ]
+
 
 class SlackClient:
     """Handles communication with Slack API."""
 
-    DEFAULT_TIMEOUT = 10 # seconds
+    DEFAULT_TIMEOUT = 10  # seconds
 
     def __init__(self, token: str, channel: str):
         """Initialize the Slack client."""
         self.token = token
         self.channel = channel
         self.base_url = "https://slack.com/api/chat.postMessage"
-        self.headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
+        self.headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-    def send_blocks(self, blocks: list[dict[str, Any]], username: str | None = None,
-                    thread_ts: str | None = None) -> str | None:
+    def send_blocks(
+        self, blocks: list[dict[str, Any]], username: str | None = None, thread_ts: str | None = None
+    ) -> str | None:
         """Send message with rich formatting using Slack blocks."""
         _logger.info("Sending Slack message with %d blocks", len(blocks))
 
-        payload = {
-            "channel": self.channel,
-            "blocks": blocks
-        }
+        payload = {"channel": self.channel, "blocks": blocks}
 
         if username:
             payload["username"] = username
@@ -453,8 +413,7 @@ class SlackClient:
 
         return self._send_request(payload)
 
-    def send_simple_message(self, text: str, username: str | None = None,
-                           thread_ts: str | None = None) -> str | None:
+    def send_simple_message(self, text: str, username: str | None = None, thread_ts: str | None = None) -> str | None:
         """Send simple text message with automatic splitting for long content."""
         _logger.info("Sending simple Slack message: %s...", text[:100])
 
@@ -465,7 +424,7 @@ class SlackClient:
             timestamps = []
 
             for i, chunk in enumerate(chunks):
-                chunk_text = f"*Part {i+1}/{len(chunks)}*\n{chunk}"
+                chunk_text = f"*Part {i + 1}/{len(chunks)}*\n{chunk}"
                 ts = self._send_simple_chunk(chunk_text, username, thread_ts)
                 if ts:
                     timestamps.append(ts)
@@ -483,26 +442,22 @@ class SlackClient:
         chunks = []
         current_chunk = ""
 
-        for line in text.split('\n'):
+        for line in text.split("\n"):
             if len(current_chunk) + len(line) + 1 <= SLACK_MAX_CHARS:
-                current_chunk += line + '\n'
+                current_chunk += line + "\n"
             else:
                 if current_chunk:
                     chunks.append(current_chunk.strip())
-                current_chunk = line + '\n'
+                current_chunk = line + "\n"
 
         if current_chunk:
             chunks.append(current_chunk.strip())
 
         return chunks
 
-    def _send_simple_chunk(self, text: str, username: str | None = None,
-                           thread_ts: str | None = None) -> str | None:
+    def _send_simple_chunk(self, text: str, username: str | None = None, thread_ts: str | None = None) -> str | None:
         """Send a single chunk of a simple text message."""
-        payload = {
-            "channel": self.channel,
-            "text": text
-        }
+        payload = {"channel": self.channel, "text": text}
 
         if username:
             payload["username"] = username
@@ -526,7 +481,7 @@ class SlackClient:
                 _logger.info("Slack message sent successfully")
                 return result.get("ts")  # Return timestamp for threading
             else:
-                _logger.error("Slack API error: %s", result.get('error'))
+                _logger.error("Slack API error: %s", result.get("error"))
                 return None
         except requests.Timeout as e:
             _logger.error("Timeout error: %s", e)
@@ -537,7 +492,7 @@ class SlackClient:
         except requests.RequestException as e:
             _logger.error("Request error: %s", e)
             return None
-        except Exception as e: # pylint: disable=broad-exception-caught
+        except Exception as e:  # pylint: disable=broad-exception-caught
             _logger.error("Exception: %s", e)
             return None
 
@@ -549,11 +504,10 @@ class UpdateNotifier:
         """Initialize the UpdateNotifier."""
         self.config = configs
         self.email_parser = ContentParser()
-        self.message_formatter = SlackMessageFormatter(configs=configs)
-        self.slack_client = SlackClient(
-            token=configs['SLACK_TOKEN'],
-            channel=configs['SLACK_CHANNEL']
+        self.message_formatter = SlackMessageFormatter(
+            username=configs["USERNAME"], hostname=configs["HOSTNAME"], bot_username=configs["BOT_USERNAME"]
         )
+        self.slack_client = SlackClient(token=configs["SLACK_TOKEN"], channel=configs["SLACK_CHANNEL"])
 
     def process_and_notify(self) -> None:
         """Main workflow for processing updates and sending notifications."""
@@ -596,27 +550,20 @@ class UpdateNotifier:
             emoji=":red_circle:",
             text="Failed",
             patterns=["error"],
-            mention_ids=MENTION_IDS['FAILED']
+            mention_ids=MENTION_IDS["FAILED"],
         )
 
         # Use the message formatter to create properly formatted blocks
         blocks = self.message_formatter.create_main_message_blocks(
-            subject=f"ERROR: {message}",
-            content=f"An error occurred during the update process: {message}"
+            subject=f"ERROR: {message}", content=f"An error occurred during the update process: {message}"
         )
 
         # Add error details at the end
-        error_block = {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"*Reason:* {message}"
-            }
-        }
+        error_block = {"type": "section", "text": {"type": "mrkdwn", "text": f"*Reason:* {message}"}}
         blocks.append(error_block)
 
         # Send the formatted message
-        self.slack_client.send_blocks(blocks, self.config['BOT_USERNAME'])
+        self.slack_client.send_blocks(blocks, self.config["BOT_USERNAME"])
 
     def _extract_log_blocks_and_validate_content(self, input_file: str) -> list[str] | None:
         """Extract lines from input file with validation."""
@@ -644,7 +591,7 @@ class UpdateNotifier:
             self._send_error_message("No valid content section found in input file")
             return None
 
-        content = ''.join(lines[start:end + 1])
+        content = "".join(lines[start : end + 1])
         _logger.info("Extracted content: %d characters", len(content))
         return content
 
@@ -653,7 +600,7 @@ class UpdateNotifier:
         # Send main message with rich formatting
         _logger.info("Sending main message")
         blocks = self.message_formatter.create_main_message_blocks(subject, content)
-        thread_ts = self.slack_client.send_blocks(blocks, self.config['BOT_USERNAME'])
+        thread_ts = self.slack_client.send_blocks(blocks, self.config["BOT_USERNAME"])
 
         if thread_ts:
             _logger.info("Main message sent successfully, thread timestamp: %s", thread_ts)
@@ -666,11 +613,7 @@ class UpdateNotifier:
         # Send Update Details in thread
         _logger.info("Sending Update Details in thread")
         update_details_blocks = self.message_formatter.create_update_details_blocks(content)
-        update_ts = self.slack_client.send_blocks(
-            update_details_blocks,
-            self.config['BOT_USERNAME'],
-            thread_ts
-        )
+        update_ts = self.slack_client.send_blocks(update_details_blocks, self.config["BOT_USERNAME"], thread_ts)
         if update_ts:
             _logger.info("Update Details sent successfully")
         else:
@@ -683,15 +626,11 @@ class UpdateNotifier:
         """Send package installation log in thread if available."""
         log_start, log_end = self.email_parser.find_log_indices(lines)
         if log_start is not None and log_end is not None and log_start <= log_end:
-            log_content = ''.join(lines[log_start:log_end + 1])
+            log_content = "".join(lines[log_start : log_end + 1])
             if log_content.strip():
                 _logger.info("Sending Package Installation Log in thread")
                 log_blocks = self.message_formatter.create_log_blocks(log_content)
-                log_ts = self.slack_client.send_blocks(
-                    log_blocks,
-                    self.config['BOT_USERNAME'],
-                    thread_ts
-                )
+                log_ts = self.slack_client.send_blocks(log_blocks, self.config["BOT_USERNAME"], thread_ts)
                 if log_ts:
                     _logger.info("Package Installation Log sent successfully")
                 else:
@@ -700,8 +639,8 @@ class UpdateNotifier:
             _logger.info("No package installation logs found, sending info message")
             self.slack_client.send_simple_message(
                 "*Note:* No package installation logs were found during this run",
-                self.config['BOT_USERNAME'],
-                thread_ts
+                self.config["BOT_USERNAME"],
+                thread_ts,
             )
 
 
@@ -711,9 +650,7 @@ def main() -> None:
     _logger.info("Starting notification script")
 
     # Load configuration
-# BUILD::SLACK_CONFIG::REPLACE
     config_dict: ConfigsDict = load_config_from_file()
-# BUILD::SLACK_CONFIG::END
 
     # Create and run notifier
     notifier = UpdateNotifier(configs=config_dict)
