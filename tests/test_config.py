@@ -1,6 +1,6 @@
 """Test configuration management."""
 
-import unittest
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -28,18 +28,20 @@ class TestConfig:
     """Test configuration management."""
 
     @pytest.fixture(name="config_file_valid")
-    def fixture_config_file(self, tmp_path: Path) -> Path:
+    def fixture_config_file(self, tmp_path: Path) -> Generator[Path, None, None]:
         """Fixture to create a config file."""
         config_file: Path = tmp_path / "config.ini"
         config_file.write_text(data=CONFIG_FILE_CONTENT_VALID, encoding="utf-8")
-        return config_file
+        yield config_file
+        config_file.unlink()
 
     @pytest.fixture(name="config_file_invalid")
-    def fixture_config_file_invalid(self, tmp_path: Path) -> Path:
+    def fixture_config_file_invalid(self, tmp_path: Path) -> Generator[Path, None, None]:
         """Fixture to create a config file."""
         config_file: Path = tmp_path / "config.ini"
         config_file.write_text(data=CONFIG_FILE_CONTENT_INVALID, encoding="utf-8")
-        return config_file
+        yield config_file
+        config_file.unlink()
 
     def test_load_config_from_file(
         self,
