@@ -1,0 +1,30 @@
+From root@ubuntu2204.localdomain  Sun Aug 31 01:29:48 2025
+Return-Path: <root@ubuntu2204.localdomain>
+X-Original-To: deerhide-notifications@localhost
+Delivered-To: deerhide-notifications@localhost
+Received: by ubuntu2204.localdomain (Postfix, from userid 0)
+        id 660093C0651; Sun, 31 Aug 2025 01:29:48 +0200 (CEST)
+Subject: [reboot required] unattended-upgrades result for server: SUCCESS
+From: root@ubuntu2204.localdomain
+To: deerhide-notifications@localhost
+Auto-Submitted: auto-generated
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <20250830232948.660093C0651@ubuntu2204.localdomain>
+Date: Sun, 31 Aug 2025 01:29:48 +0200 (CEST)
+
+Unattended upgrade result: No packages found that can be upgraded
+ unattended and no pending auto-removals
+
+Warning: A reboot is required to complete this upgrade, or a previous one.
+
+Unattended-upgrades log:
+Starting unattended upgrades script
+Allowed origins are: o=3DUbuntu,a=3Dnoble, o=3DUbuntu,a=3Dnoble-security, o=
+=3DUbuntuESMApps,a=3Dnoble-apps-security, o=3DUbuntuESM,a=3Dnoble-infra-sec=
+urity
+Initial blacklist:=20
+Initial whitelist (not strict):=20
+No packages found that can be upgraded unattended and no pending auto-remov=
+als

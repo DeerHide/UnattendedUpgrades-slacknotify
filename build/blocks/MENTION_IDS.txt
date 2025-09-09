@@ -1,0 +1,8 @@
+MENTION_IDS = {
+    'FAILED':   [],
+    'WARNING':  [],
+    'NO_UPDATES_REBOOT_PENDING': [],
+    'SUCCESS':  [],
+    'INFO':     [],
+    'NO_UPDATES':[],
+}
