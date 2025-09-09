@@ -1,31 +1,28 @@
 # Unattended Upgrades Slack Notifier
 
-Processes unattended upgrade emails and sends notifications to Slack with configurable alerting rules.
+Parses unattended upgrade emails and sends Slack notifications.
 
-## What it does
+## Features
 
-- Parses unattended upgrade emails for update status and package details
-- Sends structured Slack notifications using Block Kit
-- Supports different mention rules for various update states (FAILED, WARNING, SUCCESS, etc.)
-- Handles both file input and stdin for mail system integration
-- Logs everything with daily rotation
+- Email parsing for update status and package details
+- Slack notifications using Block Kit
+- Configurable mention rules for different update states
+- File input and stdin support
 
-## Installation
 
-1. Clone the repository
-2. Run the setup script:
+## Setup
+
 ```bash
 ./scripts/setup.sh
 ```
 
 ## Configuration
 
-Copy the sample config and edit it:
 ```bash
 cp src/config.ini.sample config.ini
 ```
 
-Required settings in `config.ini`:
+Edit `config.ini`:
 ```ini
 [slack]
 token = xoxb-your-actual-slack-token
@@ -37,55 +34,65 @@ hostname = your-server-hostname
 username = root
 ```
 
-Environment variables work too: `SLACK_TOKEN`, `SLACK_CHANNEL`, `HOSTNAME`, `USERNAME`, `BOT_USERNAME`
+Environment variables: `SLACK_TOKEN`, `SLACK_CHANNEL`, `HOSTNAME`, `USERNAME`, `BOT_USERNAME`
 
 ## Usage
 
-Process an email file:
+File input:
 ```bash
 python src/notifyslack.py /path/to/email.txt
 ```
 
-Process from stdin:
+Stdin:
 ```bash
 cat email.txt | python src/notifyslack.py
 ```
 
 ## Build
 
-The build script processes Jinja2 templates and generates environment-specific versions:
+Two build options available:
+
+**Jinja2 templates for Ansible:**
 ```bash
 python build.py
 ```
 
-## Dependencies
+**Direct Python usage:**
+Use the generated script directly without Ansible.
+
+## Postfix Integration
+
+Configure unattended-upgrades to send emails to postfix:
+
+1. Edit `/etc/apt/apt.conf.d/50unattended-upgrades`:
+```plaintext
+Unattended-Upgrade::Mail "root@localhost";
+```
+
+2. Configure postfix to pipe emails to the script:
+```plaintext
+# In /etc/postfix/master.cf
+notifyslack unix - n n - - pipe
+  flags=F user=root argv=/path/to/notifyslack.py
+```
+
+3. Add transport rule in `/etc/postfix/main.cf`:
+```plaintext
+transport_maps = hash:/etc/postfix/transport
+```
+
+4. Create `/etc/postfix/transport`:
+```plaintext
+root@localhost notifyslack:
+```
+
+## Requirements
 
 - Python 3.10+
 - requests>=2.25.0
 
-## Project Structure
-
-```
-src/
-├── notifyslack.py    # Main script
-├── config.py         # Configuration management
-└── config.ini.sample # Configuration template
-build/
-├── blocks/           # Jinja2 template blocks
-└── build.py          # Build script
-scripts/
-└── setup.sh          # Setup script
-tests/
-└── data/             # Test email samples
-```
-
 ## License
 
-MIT License - see LICENSE file for details.
-
-## Link
-https://app.slack.com/block-kit-builder
-https://docs.slack.dev/reference/block-kit/blocks/rich-text-block/
-
+MIT
 
 _Generated documentation_
