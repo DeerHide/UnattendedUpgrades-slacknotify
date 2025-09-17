@@ -1,0 +1,57 @@
+From root@ubuntu2204.localdomain  Sat Sep  6 06:01:08 2025
+Return-Path: <root@ubuntu2204.localdomain>
+X-Original-To: deerhide-notifications@localhost
+Delivered-To: deerhide-notifications@localhost
+Received: by ubuntu2204.localdomain (Postfix, from userid 0)
+        id AEC7A3C0AE8; Sat,  6 Sep 2025 06:01:08 +0200 (CEST)
+Subject: unattended-upgrades result for server: SUCCESS
+From: root@ubuntu2204.localdomain
+To: deerhide-notifications@localhost
+Auto-Submitted: auto-generated
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <20250906040108.AEC7A3C0AE8@ubuntu2204.localdomain>
+Date: Sat,  6 Sep 2025 06:01:08 +0200 (CEST)
+
+Unattended upgrade result: All upgrades installed
+
+Packages that were upgraded:
+ linux-firmware
+
+Package installation log:
+Log started: 2025-09-06  06:00:55
+Preparing to unpack .../linux-firmware_20240318.git3b128b60-0ubuntu2.17_amd=
+64.deb ...
+Unpacking linux-firmware (20240318.git3b128b60-0ubuntu2.17) over (20240318.=
+git3b128b60-0ubuntu2.15) ...
+Setting up linux-firmware (20240318.git3b128b60-0ubuntu2.17) ...
+Processing triggers for initramfs-tools (0.142ubuntu25.4) ...
+update-initramfs: Generating /boot/initrd.img-6.8.0-79-generic
+
+Running kernel seems to be up-to-date.
+
+The processor microcode seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+Log ended: 2025-09-06  06:01:07
+
+
+
+Unattended-upgrades log:
+Starting unattended upgrades script
+Allowed origins are: o=3DUbuntu,a=3Dnoble, o=3DUbuntu,a=3Dnoble-security, o=
+=3DUbuntuESMApps,a=3Dnoble-apps-security, o=3DUbuntuESM,a=3Dnoble-infra-sec=
+urity
+Initial blacklist:=20
+Initial whitelist (not strict):=20
+Packages that will be upgraded: linux-firmware
+Writing dpkg log to /var/log/unattended-upgrades/unattended-upgrades-dpkg.l=
+og
+All upgrades installed
