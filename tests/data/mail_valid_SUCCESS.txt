@@ -4,7 +4,7 @@ X-Original-To: deerhide-notifications@localhost
 Delivered-To: deerhide-notifications@localhost
 Received: by ubuntu2204.localdomain (Postfix, from userid 0)
         id AEC7A3C0AE8; Sat,  6 Sep 2025 06:01:08 +0200 (CEST)
-Subject: unattended-upgrades result for sayuri: SUCCESS
+Subject: unattended-upgrades result for server: SUCCESS
 From: root@ubuntu2204.localdomain
 To: deerhide-notifications@localhost
 Auto-Submitted: auto-generated
