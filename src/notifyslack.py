@@ -15,20 +15,21 @@ import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypedDict
+from email.header import decode_header, make_header
+from email import message_from_bytes
 
 import requests
 
+# BUILD::CONFIG_CLASS::REPLACE
 from config import ConfigsDict, load_config_from_file
-
+# BUILD::CONFIG_CLASS::END
 # BUILD::LOG_DIR::REPLACE
 BASE_LOG_DIR = "./logs/notifyslack"
 # BUILD::LOG_DIR::END
-
 # BUILD::LOG_LEVEL::REPLACE
 LOG_LEVEL = logging.DEBUG
 # BUILD::LOG_LEVEL::END
-
 # user id is prefixed with @, e.g. @U076T6095FG
 # group id is prefixed with !subteam^, e.g. !subteam^SAZ94GDB8
 # you can also use !here or !channel to mention the entire channel
@@ -50,7 +51,6 @@ SLACK_MAX_CHARS = 12000  # Slack's actual character limit per message
 # This debug code will be removed during build
 print("Debug: log level set to", LOG_LEVEL)
 # BUILD::DEBUG_CODE::END
-
 
 class LoggerManager:
     """Manages the logger for the notification system."""
@@ -82,7 +82,6 @@ class LoggerManager:
         if self.logger is None:
             return self.setup()
         return self.logger
-
 
 _logger = LoggerManager(BASE_LOG_DIR).get_logger()
 
@@ -169,6 +168,39 @@ class ContentParser:
             _logger.warning("Could not determine content section boundaries")
 
         return start, end
+
+    def parse_email(self, filepath: str) -> tuple[str, str]:
+        """Parse email file, decode subject and text/plain body.
+
+        Returns a tuple of (subject, decoded_body).
+        """
+        with open(filepath, "rb") as f:
+            raw = f.read()
+
+        # Strip leading mbox 'From ' line if present
+        if raw.startswith(b"From "):
+            nl = raw.find(b"\n")
+            if nl != -1:
+                raw = raw[nl + 1 :]
+
+        msg = message_from_bytes(raw)
+
+        subject = str(make_header(decode_header(msg.get("Subject", ""))))
+
+        body = ""
+        if msg.is_multipart():
+            for part in msg.walk():
+                if part.get_content_type() == "text/plain":
+                    payload = part.get_payload(decode=True) or b""
+                    charset = part.get_content_charset() or "utf-8"
+                    body = payload.decode(charset, errors="replace")
+                    break
+        else:
+            payload = msg.get_payload(decode=True) or b""
+            charset = msg.get_content_charset() or "utf-8"
+            body = payload.decode(charset, errors="replace")
+
+        return subject, body
 
     def find_log_indices(self, lines: list[str]) -> tuple[int | None, int | None]:
         """Find the start and end indices of the package installation log."""
@@ -518,14 +550,15 @@ class UpdateNotifier:
         _logger.info("Input file: %s, Temporary file: %s", input_file, tmp_file)
 
         try:
-            # Extract and validate content
-            lines = self._extract_log_blocks_and_validate_content(input_file)
-            if lines is None:
+            # Parse and decode email
+            subject, decoded_body = self.email_parser.parse_email(input_file)
+            if not subject:
+                _logger.error("No subject found, sending error message")
+                self._send_error_message("No Subject line found in input file")
                 return
 
-            subject = self._extract_subject(lines)
-            if not subject:
-                return
+            # Prepare decoded lines for downstream parsing (preserve line breaks)
+            lines = decoded_body.splitlines(True)
 
             content = self._extract_main_content(lines)
             if not content:

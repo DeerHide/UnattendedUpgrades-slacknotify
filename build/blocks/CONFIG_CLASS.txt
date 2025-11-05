@@ -1,0 +1,17 @@
+class SlackConfigsDict(TypedDict):
+    """Slack configuration dictionary."""
+
+    SLACK_TOKEN: str
+    SLACK_CHANNEL: str
+    BOT_USERNAME: str
+
+
+class SystemConfigsDict(TypedDict):
+    """System configuration dictionary."""
+
+    HOSTNAME: str
+    USERNAME: str
+
+
+class ConfigsDict(SystemConfigsDict, SlackConfigsDict):
+    """Combined configuration dictionary."""
