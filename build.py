@@ -11,10 +11,9 @@ import os
 import re
 import shutil
 import subprocess
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
-from datetime import datetime
-
 
 
 def get_block_content(block_id: str) -> list[str]:
@@ -61,6 +60,7 @@ def main() -> None:
     src_filepath = os.path.join(src_dir, src_filename)
 
     dist_dir = os.path.abspath("dist")
+    os.makedirs(dist_dir, exist_ok=True)
     dist_filename_tmp = f"{src_filename}.tmp"
 
     shutil.copy(src_filepath, os.path.join(dist_dir, dist_filename_tmp))
@@ -74,7 +74,7 @@ def main() -> None:
     except FileNotFoundError:
         print(f"File {dist_filepath_tmp} not found")
         return
-    
+
     dist_filename_py = src_filename
     dist_filename_j2 = f"{src_filename}.j2"
 

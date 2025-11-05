@@ -1,7 +1,7 @@
     config_dict: ConfigsDict = ConfigsDict(
-        SLACK_TOKEN = "",  # Bot User OAuth Token
-        SLACK_CHANNEL = "",  # Channel ID or name
-        HOSTNAME = "",
-        USERNAME = "",
-        BOT_USERNAME = ""
+        SLACK_TOKEN="",  # Bot User OAuth Token
+        SLACK_CHANNEL="",  # Channel ID or name
+        HOSTNAME="",
+        USERNAME="",
+        BOT_USERNAME="",
     )

@@ -650,8 +650,9 @@ def main() -> None:
     _logger.info("Starting notification script")
 
     # Load configuration
+# BUILD::SLACK_CONFIG::REPLACE
     config_dict: ConfigsDict = load_config_from_file()
-
+# BUILD::SLACK_CONFIG::END
     # Create and run notifier
     notifier = UpdateNotifier(configs=config_dict)
     notifier.process_and_notify()
