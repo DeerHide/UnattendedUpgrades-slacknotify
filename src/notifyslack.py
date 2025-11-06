@@ -185,6 +185,7 @@ class ContentParser:
 
         msg = message_from_bytes(raw)
 
+        # Decode RFC 2047 encoded email subject (e.g., =?utf-8?q?...?= format)
         subject = str(make_header(decode_header(msg.get("Subject", ""))))
 
         body = ""
