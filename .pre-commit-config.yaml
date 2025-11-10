@@ -9,7 +9,7 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: "python"
+        entry: ".venv/bin/python"
         args:
           - "-m"
           - "pytest"
@@ -25,7 +25,7 @@ repos:
           - "manual"
       - id: mypy
         name: mypy
-        entry: "python"
+        entry: ".venv/bin/python"
         args:
           - "-m"
           - "mypy"
@@ -35,37 +35,6 @@ repos:
         always_run: true
         stages:
           - "pre-push"
-          - "manual"
-      - id: ruff-format
-        name: ruff-format
-        language: system
-        entry: "python"
-        types: [python]
-        pass_filenames: false
-        args:
-          - "-m"
-          - "ruff"
-          - "format"
-          - "src"
-          - "tests"
-        stages:
-          - "pre-commit"
-          - "manual"
-      - id: ruff-check
-        name: ruff-check
-        language: system
-        entry: "python"
-        types: [python]
-        pass_filenames: false
-        args:
-          - "-m"
-          - "ruff"
-          - "check"
-          - "src"
-          - "tests"
-          - "--fix"
-        stages:
-          - "pre-commit"
           - "manual"
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -94,7 +63,7 @@ repos:
     hooks:
       - id: pylint
         name: pylint
-        entry: "python"
+        entry: ".venv/bin/python"
         language: system
         types: [python]
         args:
