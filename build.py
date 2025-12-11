@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 
-"""
-Build script for the Slack notification system for unattended upgrades
+"""Build script for the Slack notification system for unattended upgrades
 
 Author: @tom4897
 Date: September 2025
@@ -12,36 +11,37 @@ import re
 import shutil
 import subprocess
 from datetime import datetime
-from pathlib import Path
-from typing import Optional
 
 
 def get_block_content(block_id: str) -> list[str]:
     block_content_py = ""
-    with open(f"build/blocks/{block_id}.txt", "r") as file:
+    with open(f"build/blocks/{block_id}.txt") as file:
         block_content_py = file.read()
 
     block_content_j2 = ""
-    with open(f"build/blocks/{block_id}.j2", "r") as file:
+    with open(f"build/blocks/{block_id}.j2") as file:
         block_content_j2 = file.read()
 
     return [block_content_py, block_content_j2]
 
+
 def get_git_branch():
     """Get the Git branch from Git."""
     try:
-        result = subprocess.run(['git', 'branch', '--show-current'], capture_output=True, text=True)
+        result = subprocess.run(["git", "branch", "--show-current"], check=False, capture_output=True, text=True)
         return result.stdout.strip()
     except Exception as e:
         print(f"Warning: Could not execute Git command: {e}")
         return "unknown"
+
 
 def get_git_commit_hash():
     """Get the short commit hash from Git."""
     try:
         # Get the short commit hash (first 7 characters)
         result = subprocess.run(
-            ['git', 'rev-parse', '--short', 'HEAD'],
+            ["git", "rev-parse", "--short", "HEAD"],
+            check=False,
             capture_output=True,
             text=True,
         )
@@ -53,6 +53,7 @@ def get_git_commit_hash():
     except Exception as e:
         print(f"Warning: Could not execute Git command: {e}")
         return "unknown"
+
 
 def main() -> None:
     src_dir = os.path.abspath("src")
@@ -69,7 +70,7 @@ def main() -> None:
 
     content = ""
     try:
-        with open(dist_filepath_tmp, "r") as file:
+        with open(dist_filepath_tmp) as file:
             content = file.read()
     except FileNotFoundError:
         print(f"File {dist_filepath_tmp} not found")
@@ -81,10 +82,10 @@ def main() -> None:
     dist_filepath_py = shutil.copy(dist_filepath_tmp, os.path.join(dist_dir, dist_filename_py))
     dist_filepath_j2 = shutil.copy(dist_filepath_tmp, os.path.join(dist_dir, dist_filename_j2))
 
-     # Get full blocks with markers included
+    # Get full blocks with markers included
     block_list = []
-    block_Re = re.compile(r"(?s)# BUILD::.*?::.*?\n.*?# BUILD::.*?::END", re.MULTILINE)
-    block_id_re = re.compile(r"(?s)# BUILD::(.*?)::(.*?)")
+    block_Re = re.compile(r"(?s)^(?:    |\t)?# BUILD::.*?::.*?\n.*?^(?:    |\t)?# BUILD::.*?::END", re.MULTILINE)
+    block_id_re = re.compile(r"(?s)^(?:    |\t)?# BUILD::(.*?)::(.*?)")
     content_py = content
     content_j2 = content
     for match in block_Re.finditer(content):
@@ -119,6 +120,7 @@ def main() -> None:
     os.unlink(dist_filepath_tmp)
 
     print(f"Successfully built {dist_filename_py} and {dist_filename_j2}")
+
 
 if __name__ == "__main__":
     main()

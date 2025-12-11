@@ -14,15 +14,16 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
-from typing import Any, ClassVar, TypedDict
-from email.header import decode_header, make_header
 from email import message_from_bytes
+from email.header import decode_header, make_header
+from enum import Enum
+from typing import Any, ClassVar, TypedDict  # noqa: F401
 
 import requests
 
 # BUILD::CONFIG_CLASS::REPLACE
 from config import ConfigsDict, load_config_from_file
+
 # BUILD::CONFIG_CLASS::END
 # BUILD::LOG_DIR::REPLACE
 BASE_LOG_DIR = "./logs/notifyslack"
@@ -51,6 +52,7 @@ SLACK_MAX_CHARS = 12000  # Slack's actual character limit per message
 # This debug code will be removed during build
 print("Debug: log level set to", LOG_LEVEL)
 # BUILD::DEBUG_CODE::END
+
 
 class LoggerManager:
     """Manages the logger for the notification system."""
@@ -82,6 +84,7 @@ class LoggerManager:
         if self.logger is None:
             return self.setup()
         return self.logger
+
 
 _logger = LoggerManager(BASE_LOG_DIR).get_logger()
 
@@ -174,34 +177,38 @@ class ContentParser:
 
         Returns a tuple of (subject, decoded_body).
         """
-        with open(filepath, "rb") as f:
-            raw = f.read()
+        try:
+            with open(filepath, "rb") as f:
+                raw = f.read()
 
-        # Strip leading mbox 'From ' line if present
-        if raw.startswith(b"From "):
-            nl = raw.find(b"\n")
-            if nl != -1:
-                raw = raw[nl + 1 :]
+            # Strip leading mbox 'From ' line if present
+            if raw.startswith(b"From "):
+                nl = raw.find(b"\n")
+                if nl != -1:
+                    raw = raw[nl + 1 :]
 
-        msg = message_from_bytes(raw)
+            msg = message_from_bytes(raw)
 
-        # Decode RFC 2047 encoded email subject (e.g., =?utf-8?q?...?= format)
-        subject = str(make_header(decode_header(msg.get("Subject", ""))))
+            # Decode RFC 2047 encoded email subject (e.g., =?utf-8?q?...?= format)
+            subject = str(make_header(decode_header(msg.get("Subject", ""))))
 
-        body = ""
-        if msg.is_multipart():
-            for part in msg.walk():
-                if part.get_content_type() == "text/plain":
-                    payload = part.get_payload(decode=True) or b""
-                    charset = part.get_content_charset() or "utf-8"
-                    body = payload.decode(charset, errors="replace")
-                    break
-        else:
-            payload = msg.get_payload(decode=True) or b""
-            charset = msg.get_content_charset() or "utf-8"
-            body = payload.decode(charset, errors="replace")
+            body = ""
+            if msg.is_multipart():
+                for part in msg.walk():
+                    if part.get_content_type() == "text/plain":
+                        payload = part.get_payload(decode=True) or b""
+                        charset = part.get_content_charset() or "utf-8"
+                        body = payload.decode(charset, errors="replace")
+                        break
+            else:
+                payload = msg.get_payload(decode=True) or b""
+                charset = msg.get_content_charset() or "utf-8"
+                body = payload.decode(charset, errors="replace")
 
-        return subject, body
+            return subject, body
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            _logger.error("Error parsing email: %s", e)
+        return "", ""
 
     def find_log_indices(self, lines: list[str]) -> tuple[int | None, int | None]:
         """Find the start and end indices of the package installation log."""
@@ -550,6 +557,15 @@ class UpdateNotifier:
         input_file, tmp_file = self.email_parser.process_input()
         _logger.info("Input file: %s, Temporary file: %s", input_file, tmp_file)
 
+        # Log file content for debugging (file will be read again in parse_email)
+        file_to_log = tmp_file if tmp_file else input_file
+        try:
+            with open(file_to_log, encoding="utf-8") as f:
+                file_content = f.read()
+                _logger.info("File content:\n%s", file_content)
+        except (FileNotFoundError, PermissionError, OSError) as e:
+            _logger.error("Failed to read file content for logging: %s", e)
+
         try:
             # Parse and decode email
             subject, decoded_body = self.email_parser.parse_email(input_file)
@@ -684,9 +700,9 @@ def main() -> None:
     _logger.info("Starting notification script")
 
     # Load configuration
-# BUILD::SLACK_CONFIG::REPLACE
+    # BUILD::SLACK_CONFIG::REPLACE
     config_dict: ConfigsDict = load_config_from_file()
-# BUILD::SLACK_CONFIG::END
+    # BUILD::SLACK_CONFIG::END
     # Create and run notifier
     notifier = UpdateNotifier(configs=config_dict)
     notifier.process_and_notify()
